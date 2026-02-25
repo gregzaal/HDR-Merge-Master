@@ -231,6 +231,19 @@ class HDRMergeMaster(Frame):
         self.num_threads.pack(side=LEFT, padx=(padding, 0))
         self.buttons_to_disable.append(self.num_threads)
 
+        # Cleanup checkbox
+        self.do_cleanup = BooleanVar()
+        self.do_cleanup.set(self.saved_settings.get("do_cleanup", False))
+        self.cleanup_check = Checkbutton(
+            r2,
+            variable=self.do_cleanup,
+            onvalue=True,
+            offvalue=False,
+            text="Cleanup temporary files",
+        )
+        self.cleanup_check.pack(side=LEFT, padx=(padding, 0))
+        self.buttons_to_disable.append(self.cleanup_check)
+
         # Spacer to push button to right
         Frame(r2).pack(side=LEFT, fill=X, expand=True)
 
@@ -640,6 +653,11 @@ class HDRMergeMaster(Frame):
         setup_dialog = SetupDialog(self.master, CONFIG, on_setup_save)
         setup_dialog.grab_set()  # Make the setup dialog modal
 
+    def refresh_cleanup_checkbox(self):
+        """Refresh the cleanup checkbox state based on config setting."""
+        do_cleanup = CONFIG.get("gui_settings", {}).get("do_cleanup", False)
+        self.do_cleanup.set(do_cleanup)
+
     def refresh_folder_profiles(self):
         """Refresh folder-to-profile mappings after profiles are modified."""
         self.folder_profiles.clear()
@@ -662,8 +680,7 @@ class HDRMergeMaster(Frame):
         """Handle processing completion."""
         for btn in self.buttons_to_disable:
             btn["state"] = "normal"
-        self.btn_execute["text"] = "Done!"
-        self.btn_execute["command"] = self.quit
+        self.btn_execute["text"] = "Create HDRs"
         self.master.update()
 
     def _on_processing_error(self, error_message):
@@ -697,6 +714,10 @@ class HDRMergeMaster(Frame):
 
         threads = int(self.num_threads.get())
         do_recursive = self.do_recursive_option.get()
+        do_cleanup = self.do_cleanup.get()
+
+        # Save cleanup setting to config
+        CONFIG["gui_settings"]["do_cleanup"] = do_cleanup
 
         # Build folder_data list from pre-analyzed stats
         folder_data = []
