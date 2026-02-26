@@ -1,2 +1,0 @@
-exifread>=3.5.1
-plyer>=2.1.0

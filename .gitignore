@@ -3,6 +3,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
+*.egg
 
 # --- Nuitka Build Artifacts ---
 # This ignores the temp C++ files but keeps your final 'build' folder 
