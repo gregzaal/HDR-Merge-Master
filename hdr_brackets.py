@@ -49,6 +49,29 @@ else:
 verbose = False
 
 
+def get_blender_version(blender_exe: str) -> tuple:
+    """Get Blender version as a tuple (major, minor, patch)."""
+    try:
+        result = subprocess.run(
+            [blender_exe, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        # Output typically starts with "Blender X.Y.Z ..."
+        for line in result.stdout.splitlines():
+            if line.startswith("Blender "):
+                version_str = line.split()[1]
+                # Parse version string (e.g., "5.0.0", "4.2.1")
+                parts = version_str.split(".")
+                return tuple(int(p) for p in parts[:3])
+    except (subprocess.TimeoutExpired, Exception) as ex:
+        print("Warning: Could not detect Blender version: %s" % ex)
+    
+    # Default to a safe version if detection fails
+    return (0, 0, 0)
+
+
 def center(win):
     win.update_idletasks()
     width = win.winfo_width()
@@ -1290,7 +1313,17 @@ class HDRMergeMaster(Frame):
             align_image_stack_exe = EXE_PATHS["align_image_stack_exe"]
             rawtherapee_cli_exe = EXE_PATHS["rawtherapee_cli_exe"]
             merge_blend = SCRIPT_DIR / "blender" / "HDR_Merge.blend"
-            merge_py = SCRIPT_DIR / "blender" / "blender_merge.py"
+            
+            # Detect Blender version and select appropriate merge script
+            blender_version = get_blender_version(blender_exe)
+            print("Detected Blender version: %d.%d.%d" % blender_version)
+            if blender_version[0] >= 5:
+                merge_py = SCRIPT_DIR / "blender" / "blender_merge_5.0.py"
+                print("Using blender_merge_5.0.py for Blender 5.0+")
+            else:
+                merge_py = SCRIPT_DIR / "blender" / "blender_merge.py"
+                print("Using blender_merge.py for Blender < 5.0")
+            
             extension = self.extension.get()
             do_align = self.do_align.get()
             do_raw = self.do_raw.get()
