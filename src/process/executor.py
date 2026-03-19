@@ -13,6 +13,7 @@ from time import sleep
 
 from process.hdr_processor import HDRProcessor
 from src.config import CONFIG, SCRIPT_DIR
+from utils.get_blender_version import get_blender_version, is_blender_version_gte
 from utils.notify_phone import notify_phone
 from utils.save_config import save_config
 
@@ -124,7 +125,18 @@ class HDRExecutor:
         align_image_stack_exe = EXE_PATHS.get("align_image_stack_exe", "")
         rawtherapee_cli_exe = EXE_PATHS.get("rawtherapee_cli_exe", "")
         merge_blend = SCRIPT_DIR / "blender" / "HDR_Merge.blend"
-        merge_py = SCRIPT_DIR / "blender" / "blender_merge.py"
+        
+        # Check Blender version to select the appropriate merge script
+        blender_version = get_blender_version(blender_exe)
+        if blender_version and is_blender_version_gte(blender_version, (5, 0, 0)):
+            merge_py = SCRIPT_DIR / "blender" / "blender_merge_5.0.py"
+            self._log("Blender version %s detected, using blender_merge_5.0.py" % ".".join(map(str, blender_version)))
+        else:
+            merge_py = SCRIPT_DIR / "blender" / "blender_merge.py"
+            if blender_version:
+                self._log("Blender version %s detected, using blender_merge.py" % ".".join(map(str, blender_version)))
+            else:
+                self._log("Blender version not detected, using blender_merge.py (default)")
 
         # Save GUI settings to config
         CONFIG["gui_settings"]["threads"] = str(self.threads)
