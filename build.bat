@@ -33,6 +33,7 @@ echo [3/5] Building standalone executable with Nuitka...
 	--enable-plugin=tk-inter ^
 	--windows-icon-from-ico=icons/icon.ico ^
 	--include-data-dir=blender=blender ^
+	--include-data-files=blender/blender_merge.py=blender/blender_merge.py ^
 	--include-data-dir=icons=icons ^
 	--output-dir=%DIST_ROOT% ^
 	--output-filename=hdr_merge_master.exe ^
