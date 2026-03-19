@@ -17,6 +17,7 @@ src/process/hdr_processor.py
 src/process/run_subprocess_with_prefix.py
 src/utils/chunks.py
 src/utils/ev_diff.py
+src/utils/get_blender_version.py
 src/utils/get_config.py
 src/utils/get_default_config.py
 src/utils/get_exif.py
