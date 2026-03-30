@@ -1,5 +1,5 @@
 [project]
-name = "hdr-merge-maste"
+name = "hdr-merge-master"
 version = "0.1.3"
 description = "Add your description here"
 readme = "readme.md"
@@ -22,6 +22,3 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.uv.scripts]
-build = "python -m nuitka hdr_brackets.py"

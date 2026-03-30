@@ -1,8 +1,12 @@
 # nuitka-project: --standalone
 # nuitka-project: --include-data-dir=blender/=blender/
 # nuitka-project: --include-data-files=blender/*.py=blender/
+# nuitka-project: --include-data-files=icons/*=icons/
 # nuitka-project: --enable-plugin=tk-inter
 # nuitka-project: --output-dir=build
+# nuitka-project: --output-filename=hdr_merge_master.exe
+# nuitka-project: --windows-icon-from-ico=icons/icon.ico
+# nuitka-project: --assume-yes-for-downloads
 
 import sys
 

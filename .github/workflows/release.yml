@@ -1,0 +1,55 @@
+name: Build and Release EXE
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers only when you push a tag like v0.1.3
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Extract Version from pyproject.toml
+        id: get_version
+        shell: pwsh
+        run: |
+          $version = (Get-Content pyproject.toml | Select-String '^version\s*=\s*\"(.*)\"').Matches.Groups[1].Value
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build with Nuitka
+        run: uv run python -m nuitka hdr_brackets.py
+        # Note: Nuitka uses your # nuitka-project: comments automatically.
+
+
+      - name: Rename Dist Folder
+        shell: pwsh
+        run: |
+          Rename-Item -Path "build/hdr_brackets.dist" -NewName "hdr_merge_master.dist"
+
+      - name: Create Zip Archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "build/hdr_merge_master.dist/*" -DestinationPath "build/hdr_merge_master_v${{ steps.get_version.outputs.VERSION }}.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/hdr_merge_master_v${{ steps.get_version.outputs.VERSION }}.zip
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

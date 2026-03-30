@@ -188,9 +188,5 @@ The distribution can be built using:
 
 `uv run python -m nuitka hdr_brackets.py `
 
-or using the preconfigured script 
-
-`uv run build`
-
 hdr_brackets.py has nuitka options preconfigured inside of it, so appropriate 
 The build will be located inside /build
