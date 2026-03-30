@@ -25,19 +25,33 @@ A script that uses Blender's compositor to reliably merge exposure brackets to 3
 
 ### Run From Source (optional)
 
-This program is a simple python script that can be run straight from the `.py` script if you can't or don't want to use the pre-built executable. It has only been tested on Windows.
+#### Prerequisites
 
-You will need:
+Ensure you have uv installed. If you don't have it yet:
 
-* [Python 3.5+](https://www.python.org/downloads/release/python-354/)
+Windows:  
+```bash
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+macOS/Linux:  
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-Install dependencies with:
+#### Clone the Repository
 
-`pip install -r requirements.txt`
+```bash
+git clone https://github.com/gregzaal/HDR-Merge-Master.git
+cd HDR-Merge-Master
+```
 
-Run the program:
+#### Run the Application
 
-`python hdr_brackets.py`
+You do not need to manually create a virtual environment or install dependencies. Simply run:
+```bash
+uv run python hdr_brackets.py
+```
+uv will automatically create a .venv, install the correct Python version (3.12+), and fetch all dependencies defined in pyproject.toml before launching the app.
 
 ## Usage
 
@@ -167,3 +181,16 @@ The script will discover that images `IMG001.tif` and `IMG004.tif` have the same
     * `IMG006.tif`
 
 Exposures can be in any order (`0 + ++`, `0 - --`, `0 + -`, `- 0 +`, etc.).
+
+## Bulding
+
+The distribution can be built using:
+
+`uv run python -m nuitka hdr_brackets.py `
+
+or using the preconfigured script 
+
+`uv run build`
+
+hdr_brackets.py has nuitka options preconfigured inside of it, so appropriate 
+The build will be located inside /build
