@@ -1,8 +1,11 @@
 ## Small changes:
 
-- [ ] Dialog to select exe files for required programs
+- [x] Dialog to select exe files for required programs
 - added default file paths for both windows and linux
-- [ ] Ask to download required programs (Blender, etc.) on first use
+- added a setup dialog, complete with download links. This will open on first run, or can be accessed later throught the setup button
+- [x] Ask to download required programs (Blender, etc.) on first use
+- links and message included in the setup dialog
+- do we need to automate downloading the programs?
 - [x] Remember last used threads and other values in config.json
 - [x] Store exe_paths in config.json
 - [x] Queue/batch processing
@@ -16,7 +19,7 @@
 - [ ] Better error handling in general, too many bug reports of people saying "it doesn't work" even when the issue is simple
 - [x] Added raw file processing with rawtherapee-cli 
 - [ ] Allow for inconsistant exposure brackets - currently the first exposure set determines how many images there are per set, but it should be possible to support exposure sets with varying numbers of images.
-- [ ] Refactor the code and split it into multiple files, the hdr_brackets.py file is getting too long
+- [x] Refactor the code and split it into multiple files, the hdr_brackets.py file is getting too long
 
 ## Big changes: 
 - [ ] Replace Blender merging with custom solution that includes deghosting & weighted merging to reduce noise. Possibly built with [OpenCV](https://learnopencv.com/high-dynamic-range-hdr-imaging-using-opencv-cpp-python)

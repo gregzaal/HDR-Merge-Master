@@ -1,56 +1,50 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 
-set "PY=py -3"
+:: --- Configuration ---
 set "MAIN_SCRIPT=hdr_brackets.py"
 set "DIST_ROOT=build"
-set "GENERATED_OUT_DIR=%DIST_ROOT%\hdr_brackets.dist"
-set "OUT_DIR=%DIST_ROOT%\hdr_merge_master.dist"
-set "VERSION=dev"
-set "ZIP_PATH=%DIST_ROOT%\hdr_merge_master_v%VERSION%.zip"
+set "OUT_NAME=hdr_merge_master"
+set "OUT_DIR=%DIST_ROOT%\%OUT_NAME%.dist"
 
-for /f "tokens=2 delims==" %%v in ('findstr /b "__version__" "%MAIN_SCRIPT%"') do set "VERSION=%%v"
-set "VERSION=%VERSION: =%"
-set "VERSION=%VERSION:"=%"
-set "VERSION=%VERSION:'=%"
-if "%VERSION%"=="" set "VERSION=dev"
-set "ZIP_PATH=%DIST_ROOT%\hdr_merge_master_v%VERSION%.zip"
+echo [1/4] Syncing environment and extracting version...
+uv sync >nul 2>&1
 
-echo [1/5] Installing build dependencies...
-%PY% -m pip install -q nuitka ordered-set zstandard
-if errorlevel 1 exit /b 1
-
-echo [2/5] Cleaning previous outputs...
-if exist "%OUT_DIR%" rmdir /s /q "%OUT_DIR%"
-if exist "%GENERATED_OUT_DIR%" rmdir /s /q "%GENERATED_OUT_DIR%"
-if exist "%DIST_ROOT%\hdr_brackets.build" rmdir /s /q "%DIST_ROOT%\hdr_brackets.build"
-if exist "%ZIP_PATH%" del /q "%ZIP_PATH%"
-
-echo [3/5] Building standalone executable with Nuitka...
-%PY% -m nuitka ^
-	--standalone ^
-	--assume-yes-for-downloads ^
-	--enable-plugin=tk-inter ^
-	--windows-icon-from-ico=icons/icon.ico ^
-	--include-data-dir=blender=blender ^
-	--include-data-files=blender/blender_merge.py=blender/blender_merge.py ^
-	--include-data-dir=icons=icons ^
-	--output-dir=%DIST_ROOT% ^
-	--output-filename=hdr_merge_master.exe ^
-	%MAIN_SCRIPT%
-if errorlevel 1 exit /b 1
-
-if exist "%GENERATED_OUT_DIR%" (
-	pushd "%DIST_ROOT%"
-	ren "hdr_brackets.dist" "hdr_merge_master.dist"
-	popd
+:: Extract version from pyproject.toml using PowerShell
+for /f "usebackq tokens=*" %%v in (`powershell -NoProfile -Command "(Get-Content pyproject.toml | Select-String '^version\s*=\s*\"(.*)\"').Matches.Groups[1].Value"`) do (
+    set "VERSION=%%v"
 )
 
-echo [4/5] Packaging distribution...
-powershell -NoProfile -Command "Compress-Archive -Path '%OUT_DIR%\*' -DestinationPath '%ZIP_PATH%' -CompressionLevel Optimal"
+if "%VERSION%"=="" set "VERSION=dev"
+set "ZIP_PATH=%DIST_ROOT%\%OUT_NAME%_v%VERSION%.zip"
+
+echo [2/4] Cleaning previous outputs...
+if exist "%DIST_ROOT%" rmdir /s /q "%DIST_ROOT%"
+
+echo [3/4] Building with Nuitka via uv...
+:: Nuitka will automatically read the # nuitka-project: flags from %MAIN_SCRIPT%
+uv run python -m nuitka %MAIN_SCRIPT%
+
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Build failed.
+    exit /b 1
+)
+
+:: Rename the output directory to our desired name
+:: Nuitka defaults to [filename].dist
+if exist "%DIST_ROOT%\hdr_brackets.dist" (
+    ren "%DIST_ROOT%\hdr_brackets.dist" "%OUT_NAME%.dist"
+)
+
+echo [4/4] Packaging distribution to ZIP...
+powershell -NoProfile -Command "Compress-Archive -Path '%OUT_DIR%\*' -DestinationPath '%ZIP_PATH%' -Force"
 if errorlevel 1 exit /b 1
 
-echo [5/5] Done.
-echo Version: v%VERSION%
-echo Output : %OUT_DIR%
-echo Zip    : %ZIP_PATH%
+echo.
+echo ========================================
+echo DONE: v%VERSION%
+echo Path: %OUT_DIR%
+echo Zip : %ZIP_PATH%
+echo ========================================
+pause
