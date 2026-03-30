@@ -1,27 +1,25 @@
-name: Build and Release EXE
+name: Build and Release
 
 on:
   push:
     tags:
-      - 'v*' # Triggers only when you push a tag like v0.1.3
+      - 'v*'
 
 jobs:
-  build:
+  # --- WINDOWS BUILD ---
+  build-windows:
     runs-on: windows-latest
-
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
-      - name: Set up Python
-        run: uv python install
-
-      - name: Extract Version from pyproject.toml
+      - name: Extract Version
         id: get_version
         shell: pwsh
         run: |
@@ -29,25 +27,69 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
 
       - name: Build with Nuitka
-        run: uv run python -m nuitka hdr_brackets.py
-        # Note: Nuitka uses your # nuitka-project: comments automatically.
+        run: uv run python -m nuitka --assume-yes-for-downloads hdr_brackets.py
 
-
-      - name: Rename Dist Folder
+      - name: Package Windows Zip
         shell: pwsh
         run: |
-          Rename-Item -Path "build/hdr_brackets.dist" -NewName "hdr_merge_master.dist"
+          Rename-Item -Path "build/hdr_brackets.dist" -NewName "hdr_merge_master"
+          Compress-Archive -Path "build/hdr_merge_master/*" -DestinationPath "build/hdr_merge_master_v${{ steps.get_version.outputs.VERSION }}-win.zip" -Force
 
-      - name: Create Zip Archive
-        shell: pwsh
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: build/*.zip
+
+  # --- LINUX BUILD ---
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: build-windows
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
         run: |
-          Compress-Archive -Path "build/hdr_merge_master.dist/*" -DestinationPath "build/hdr_merge_master_v${{ steps.get_version.outputs.VERSION }}.zip"
+          sudo apt-get update
+          sudo apt-get install -y python3-tk patchelf
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build with Nuitka
+        run: uv run python -m nuitka --assume-yes-for-downloads hdr_brackets.py
+
+      - name: Package Linux Tarball
+        run: |
+          mv build/hdr_brackets.dist build/hdr_merge_master
+          tar -czvf build/hdr_merge_master_v${{ needs.build-windows.outputs.version }}-linux.tar.gz -C build/ hdr_merge_master
+
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: build/*.tar.gz
+
+  # --- CREATE RELEASE ---
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-linux]
+    permissions:
+      contents: write
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/hdr_merge_master_v${{ steps.get_version.outputs.VERSION }}.zip
-          name: Release v${{ steps.get_version.outputs.VERSION }}
+          files: ./artifacts/*
+          name: Release v${{ needs.build-windows.outputs.version }}
           tag_name: ${{ github.ref_name }}
           draft: false
           prerelease: false
