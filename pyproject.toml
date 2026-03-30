@@ -1,17 +1,20 @@
 [project]
-name = "hdr-merge-master"
+name = "hdr-merge-maste"
 version = "0.1.0"
 description = "Add your description here"
 readme = "readme.md"
 requires-python = ">=3.14"
 dependencies = [
     "exifread>=3.5.1",
-    "opencv-python>=4.13.0.92",
     "plyer>=2.1.0",
 ]
 
 [dependency-groups]
-dev = []
+dev = [
+    "nuitka>=4.0.7",
+    "ordered-set>=4.1.0",
+    "zstandard>=0.25.0",
+]
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]
@@ -19,3 +22,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.uv.scripts]
+build = "python -m nuitka .\hdr_brackets.py"

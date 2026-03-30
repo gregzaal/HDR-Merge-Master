@@ -1,3 +1,9 @@
+# nuitka-project: --standalone
+# nuitka-project: --include-data-dir=blender/=blender/
+# nuitka-project: --include-data-files=blender/*.py=blender/
+# nuitka-project: --enable-plugin=tk-inter
+# nuitka-project: --output-dir=build
+
 from tkinter import (
     PhotoImage,
     Tk,

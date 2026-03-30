@@ -1,9 +1,22 @@
+# --- UV & Python Essentials ---
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Nuitka Build Artifacts ---
+# This ignores the temp C++ files but keeps your final 'build' folder 
+# (unless you want to ignore the final EXE too)
+build/
+*.build/
+*.dist/
+*.onefile-build/
+
+# --- Project Specific ---
 exe_paths.json
 pushover.json
 config.json
 *.blend?
-/build
 /tmp
 *.pts
-__pycache__
 *.pp3
