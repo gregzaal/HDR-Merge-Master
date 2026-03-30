@@ -1,3 +1,3 @@
 VERSION = "1.3.0.beta"
-VERBOSE = True
+VERBOSE = False
 padding = 8

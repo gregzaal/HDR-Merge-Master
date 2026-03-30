@@ -1,3 +1,2 @@
 exifread
-opencv-python
 plyer
