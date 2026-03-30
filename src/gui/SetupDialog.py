@@ -13,6 +13,7 @@ from tkinter import (
     RIGHT,
     BooleanVar,
     Button,
+    Canvas,
     Checkbutton,
     Entry,
     Frame,
@@ -74,7 +75,7 @@ class SetupDialog(Toplevel):
 
         # Create notebook for tabs
         notebook = ttk.Notebook(self)
-        notebook.pack(fill=BOTH, expand=True, padx=padding, pady=padding)
+        notebook.pack(fill=BOTH, expand=True, padx=padding, pady=(padding, 0))
 
         # ========== Executable Paths Tab ==========
         exe_frame = Frame(notebook)
@@ -91,7 +92,7 @@ class SetupDialog(Toplevel):
         notebook.add(rec_frame, text="Recursive Search")
         self._init_recursive_tab(rec_frame, padding)
 
-        # Buttons frame (at bottom)
+        # Buttons frame (at bottom, always visible)
         btn_frame = Frame(self)
         btn_frame.pack(fill=X, padx=padding, pady=(0, padding))
 
@@ -103,16 +104,37 @@ class SetupDialog(Toplevel):
 
     def _init_exe_tab(self, parent, padding):
         """Initialize the Executable Paths tab."""
+        # Create canvas and scrollbar for scrollable area
+        canvas = Canvas(parent, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Bind mousewheel for scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<MouseWheel>", _on_mousewheel)
+
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+
         # Title label
         title_label = Label(
-            parent,
+            scrollable_frame,
             text="Configure Executable Paths",
             font=("TkDefaultFont", 11, "bold"),
         )
         title_label.pack(anchor="w", pady=(0, padding))
 
         intro_label = Label(
-            parent,
+            scrollable_frame,
             text="Please configure the paths to the required executable files. "
             "Optional tools can be configured for additional features.",
             wraplength=650,
@@ -145,7 +167,7 @@ class SetupDialog(Toplevel):
 
         for exe_config in exe_configs:
             self._create_exe_field(
-                parent,
+                scrollable_frame,
                 exe_config["key"],
                 exe_config["label"],
                 exe_config["download_url"],
@@ -153,8 +175,29 @@ class SetupDialog(Toplevel):
 
     def _init_extensions_tab(self, parent, padding):
         """Initialize the File Extensions tab."""
+        # Create canvas and scrollbar for scrollable area
+        canvas = Canvas(parent, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Bind mousewheel for scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<MouseWheel>", _on_mousewheel)
+
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+
         # RAW Extensions section
-        raw_frame = Frame(parent)
+        raw_frame = Frame(scrollable_frame)
         raw_frame.pack(fill=X, pady=(padding, padding * 2))
 
         Label(
@@ -175,7 +218,7 @@ class SetupDialog(Toplevel):
         self.raw_ext_entry.insert(0, ", ".join(self.raw_extensions))
 
         # Processed Extensions section
-        proc_frame = Frame(parent)
+        proc_frame = Frame(scrollable_frame)
         proc_frame.pack(fill=X, pady=padding)
 
         Label(
@@ -196,7 +239,7 @@ class SetupDialog(Toplevel):
         self.proc_ext_entry.insert(0, ", ".join(self.processed_extensions))
 
         # OpenCV Alignment section
-        opencv_frame = Frame(parent)
+        opencv_frame = Frame(scrollable_frame)
         opencv_frame.pack(fill=X, pady=padding)
 
         Label(
@@ -224,7 +267,7 @@ class SetupDialog(Toplevel):
         ).pack(anchor="w", pady=(4, 0))
 
         # Cleanup section
-        cleanup_frame = Frame(parent)
+        cleanup_frame = Frame(scrollable_frame)
         cleanup_frame.pack(fill=X, pady=padding)
 
         Label(
@@ -253,8 +296,29 @@ class SetupDialog(Toplevel):
 
     def _init_recursive_tab(self, parent, padding):
         """Initialize the Recursive Search tab."""
+        # Create canvas and scrollbar for scrollable area
+        canvas = Canvas(parent, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Bind mousewheel for scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<MouseWheel>", _on_mousewheel)
+
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+
         # Max depth section
-        depth_frame = Frame(parent)
+        depth_frame = Frame(scrollable_frame)
         depth_frame.pack(fill=X, pady=(padding, padding * 2))
 
         Label(
@@ -278,7 +342,7 @@ class SetupDialog(Toplevel):
         ).pack(side=LEFT, padx=(8, 0))
 
         # Ignore folders section
-        ignore_frame = Frame(parent)
+        ignore_frame = Frame(scrollable_frame)
         ignore_frame.pack(fill=X, pady=padding)
 
         Label(
