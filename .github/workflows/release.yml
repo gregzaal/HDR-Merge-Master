@@ -27,7 +27,7 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
 
       - name: Build with Nuitka
-        run: uv run python -m nuitka --assume-yes-for-downloads hdr_brackets.py
+        run: uv run python -m nuitka --output-filename=hdr_merge_master.exe hdr_brackets.py
 
       - name: Package Windows Zip
         shell: pwsh
@@ -59,7 +59,7 @@ jobs:
           enable-cache: true
 
       - name: Build with Nuitka
-        run: uv run python -m nuitka --assume-yes-for-downloads hdr_brackets.py
+        run: uv run python -m nuitka --output-filename=hdr_merge_master hdr_brackets.py
 
       - name: Package Linux Tarball
         run: |

@@ -22,8 +22,7 @@ echo [2/4] Cleaning previous outputs...
 if exist "%DIST_ROOT%" rmdir /s /q "%DIST_ROOT%"
 
 echo [3/4] Building with Nuitka via uv...
-:: Nuitka will automatically read the # nuitka-project: flags from %MAIN_SCRIPT%
-uv run python -m nuitka %MAIN_SCRIPT%
+uv run python -m nuitka --output-filename=%OUT_NAME%.exe %MAIN_SCRIPT%
 
 if errorlevel 1 (
     echo.
