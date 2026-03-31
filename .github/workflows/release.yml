@@ -12,10 +12,10 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.VERSION }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v8
         with:
           enable-cache: true
 
@@ -36,7 +36,7 @@ jobs:
           Compress-Archive -Path "build/hdr_merge_master/*" -DestinationPath "build/hdr_merge_master_v${{ steps.get_version.outputs.VERSION }}-win.zip" -Force
 
       - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-build
           path: build/*.zip
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-windows
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install dependencies
         run: |
@@ -54,7 +54,7 @@ jobs:
           sudo apt-get install -y python3-tk patchelf
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v8
         with:
           enable-cache: true
 
@@ -67,7 +67,7 @@ jobs:
           tar -czvf build/hdr_merge_master_v${{ needs.build-windows.outputs.version }}-linux.tar.gz -C build/ hdr_merge_master
 
       - name: Upload Linux Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-build
           path: build/*.tar.gz
@@ -80,7 +80,7 @@ jobs:
       contents: write
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ./artifacts
           merge-multiple: true
