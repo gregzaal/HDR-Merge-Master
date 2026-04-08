@@ -8,14 +8,14 @@ Contains core processing logic for HDR image merging:
 """
 
 import pathlib
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from constants import VERBOSE
-from utils.chunks import chunks
 from process.run_subprocess_with_prefix import run_subprocess_with_prefix
+from src.config import CONFIG
+from utils.chunks import chunks
 from utils.ev_diff import ev_diff
 from utils.get_exif import get_exif
-from src.config import CONFIG
 
 
 class HDRProcessor:
@@ -52,6 +52,7 @@ class HDRProcessor:
         pp3_file: str,
         folder: pathlib.Path,
         extension: str,
+        executor: ThreadPoolExecutor,
     ) -> pathlib.Path:
         """Process RAW files in folder using RawTherapee CLI and output TIFFs to a 'tif' subfolder."""
         self._log("\nFolder %s: Processing RAW files with RawTherapee..." % folder.name)
@@ -76,34 +77,61 @@ class HDRProcessor:
         tif_folder = folder / "tif"
         tif_folder.mkdir(parents=True, exist_ok=True)
 
-        # Build RawTherapee CLI command
-        cmd = [
-            rawtherapee_cli_exe,
-            "-p",
-            pp3_file,
-            "-o",
-            str(tif_folder),
-            "-t",
-            "-c",
-        ]
-
-        # Add all RAW files to process
-        for raw_file in raw_files:
-            cmd.append(str(raw_file))
-
         self._log(
-            "Folder %s: Running RawTherapee CLI on %d RAW files..."
+            "Folder %s: Running RawTherapee CLI in parallel on %d RAW files..."
             % (folder.name, len(raw_files))
         )
-        if VERBOSE:
-            self._log("Folder %s: Command: %s" % (folder.name, " ".join(cmd)))
 
-        # Run RawTherapee CLI
-        try:
-            run_subprocess_with_prefix(cmd, 0, "rawtherapee", out_folder=tif_folder)
-        except Exception as ex:
-            self._log("Folder %s: Failed to process RAW files: %s" % (folder.name, ex))
-            raise
+        futures = []
+        for idx, raw_file in enumerate(raw_files):
+            cmd = [
+                rawtherapee_cli_exe,
+                "-p",
+                pp3_file,
+                "-o",
+                str(tif_folder),
+                "-t",
+                "-c",
+                str(raw_file),
+            ]
+            if VERBOSE:
+                self._log(
+                    "Folder %s: RAW %d/%d command: %s"
+                    % (folder.name, idx + 1, len(raw_files), " ".join(cmd))
+                )
+            futures.append(
+                (idx, raw_file, executor.submit(
+                    run_subprocess_with_prefix,
+                    cmd,
+                    idx,
+                    "rawtherapee",
+                    tif_folder,
+                ))
+            )
+
+        failures = []
+        future_to_job = {future: (idx, raw_file) for idx, raw_file, future in futures}
+        for future in as_completed(future_to_job):
+            idx, raw_file = future_to_job[future]
+            try:
+                future.result()
+            except Exception as ex:
+                failures.append((idx, raw_file, ex))
+
+        if failures:
+            first_idx, first_file, first_ex = failures[0]
+            self._log(
+                "Folder %s: Failed RAW conversion for %d/%d file(s). First failure: #%d %s (%s)"
+                % (
+                    folder.name,
+                    len(failures),
+                    len(raw_files),
+                    first_idx + 1,
+                    first_file.name,
+                    first_ex,
+                )
+            )
+            raise first_ex
 
         self._log(
             "Folder %s: RawTherapee processing complete. TIFFs saved to: %s"
@@ -257,7 +285,7 @@ class HDRProcessor:
         # If RAW processing is enabled, process RAW files first
         if do_raw and pp3_file and pathlib.Path(pp3_file).exists():
             tif_folder = self.process_raw_with_rawtherapee(
-                rawtherapee_cli_exe, pp3_file, folder, original_extension
+                rawtherapee_cli_exe, pp3_file, folder, original_extension, executor
             )
             if tif_folder:
                 folder = tif_folder
