@@ -7,5 +7,12 @@
       "source.organizeImports": "explicit"
     }
   },
-  "workbench.editor.highlightModifiedTabs": true
+  "workbench.editor.highlightModifiedTabs": true,
+  "files.exclude": {
+      "**/__pycache__": true,
+      ".venv": true,
+      ".ipynb_checkpoints": true,
+      "dist": true,
+      "build": true,
+  },
 }
