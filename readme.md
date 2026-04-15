@@ -6,6 +6,8 @@ A script that uses Blender's compositor to reliably merge exposure brackets to 3
 <img width="841" height="466" alt="Screenshot 2026-03-31 174225" src="https://github.com/user-attachments/assets/013e260e-e3ef-4658-8a98-4407feca36a6" />
 </p>
 
+This tool is used at [Poly Haven](https://polyhaven.com/hdris) to merge exposure bracket sequences for HDRI creation. Read more about our HDRI workflow [on our blog](https://blog.polyhaven.com/how-to-create-high-quality-hdri/).
+
 
 ## Installation
 
@@ -29,11 +31,11 @@ A script that uses Blender's compositor to reliably merge exposure brackets to 3
 
 Ensure you have uv installed. If you don't have it yet:
 
-Windows:  
+Windows:
 ```bash
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
-macOS/Linux:  
+macOS/Linux:
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
@@ -55,32 +57,52 @@ uv will automatically create a .venv, install the correct Python version (3.12+)
 
 ## Usage
 
-### GUI Mode
-
-Running the script for the first time will prompt you to edit `exe_paths.json` to fill in the paths to your `blender.exe`, `luminance-hdr-cli.exe` and `align_image_stack.exe` executable files. It should look something like this (note the double backslashes; you can use forward slashes as well):
-
-```
-{
-    "blender_exe": "C:\\Program Files\\Blender 2.79\\blender.exe",
-    "luminance_cli_exe": "C:\\Program Files\\LuminanceHDR\\luminance-hdr-cli.exe",
-    "align_image_stack_exe": "C:\\Program Files\\Hugin\\bin\\align_image_stack.exe"
-    "rawtherapee_cli_exe": "C://Program Files//RawTherapee//5.12//rawtherapee-cli.exe"
-}
-```
+Running for the first time will prompt you to locate the `.exe` files for the required software above (`blender.exe`, `luminance-hdr-cli.exe`, etc.)
 
 Note: Do not use the `align_image_stack.exe` that comes with LuminanceHDR, as this is a different version which won't work. Only use the one that comes with Hugin itself.
 
 Then:
 
 1. Select a folder that contains your full set of exposure brackets (see *Example Folder Structure* below). You can now add multiple folders to the input folders for batch processing.
-2. Choose a pattern to match the files (e.g. `.tif` to get all TIFF files). All formats that Blender supports should work, but if you want to use RAW files from your camera, **you need to install RawTherapee and enable the RAW option in the UI**. Make sure to match the pattern to your camera's output file format. I typically do some minor tweaks to the RAW files in Lightroom first (e.g. chromatic aberration correction) and then export 16-bit `.tif` files to merge with this script.
-3. Choose the number of threads (the number of simultaneous bracketed exposures to merge). Use as many threads as you can without running out of RAM or freezing your computer. In my experience 6 threads usually works fine for 32 GB RAM.
+2. Choose a pattern to match the files (e.g. `.tif` to get all TIFF files). All formats that Blender supports should work, but if you want to use RAW files from your camera, **you need to install RawTherapee and enable the RAW option in the UI**. I typically do some minor tweaks to the RAW files in RawTherapee first (e.g. chromatic aberration correction) and then export 16-bit `.tif` files to merge with this script.
+3. Choose the number of threads (the number of simultaneous bracketed exposures to merge). Use as many threads as you can without running out of RAM or freezing your computer. In my experience 6 threads usually works fine for 32 GB RAM, but this depends on your camera resolution.
 4. Choose whether to align the images before merging.
-5. Choose whether you want the scrpit to look for subfolders inside the selected folders recursivly.
+5. The "Recursive" option will iterate through all subfolders of your selected folder.
 6. Click *Create HDRs*, and monitor the console window for progress and errors.
 7. The merged HDR images will be in a folder called `Merged` next to your original files. The `exr` subfolder contains the actual 32-bit HDR files, while the `jpg` folder contains tonemapped versions of those files.
 
-### Command Line Interface (CLI)
+Note: This tool does not do any ghost removal, so it's important that you use a steady tripod when shooting.
+
+The intended use here is for creating HDRIs, allowing you to stitch with the JPG files (which load quickly and, being tonemapped, show more dynamic range), and then swap the JPGs out with the EXR files at the end before your final export. If you are using PTGui, you can do this using the included `ptgui_jpg_to_hdr.py` file - just drag your `.pts` project file onto that script and it will replace the JPG paths with EXR ones.
+
+## Example Input Folder Structure
+
+The script will automatically read the metadata and determine which images should be grouped together and merged. The entire folder of images will be merged based on the pattern determined by the first set.
+
+The bracket matching works by checking the exposure metadata of the first image and searching for the next image with the same exposure:
+
+* C:/Foo/bar/
+    * `IMG001.tif` - 1/4000 F/8 ISO100
+    * `IMG002.tif` - 1/1000 F/8 ISO200
+    * `IMG003.tif` - 1/250 F/8 ISO400
+    * `IMG004.tif` - 1/4000 F/8 ISO100
+    * `IMG005.tif` - 1/1000 F/8 ISO200
+    * `IMG006.tif` - 1/250 F/8 ISO400
+
+The script will discover that images `IMG001.tif` and `IMG004.tif` have the same exposure settings, and thus the images will be grouped into threes:
+
+* Exposure set 1 (merged to `merged_000.exr`):
+    * `IMG001.tif`
+    * `IMG002.tif`
+    * `IMG003.tif`
+* Exposure set 2 (merged to `merged_001.exr`):
+    * `IMG004.tif`
+    * `IMG005.tif`
+    * `IMG006.tif`
+
+Exposures can be in any order (`0 + ++`, `0 - --`, `0 + -`, `- 0 +`, etc.).
+
+## Command Line Interface (CLI)
 
 The application supports a headless CLI mode for automated batch processing without the GUI.
 
@@ -151,37 +173,6 @@ You can export and import batch lists from the GUI using the Export/Import butto
 
 Note: In CLI mode, processing begins automatically once all folders are loaded.
 
-Note: This tool does not do any ghost removal, so it's important that you use a steady tripod when shooting.
-
-The intended use here is for creating HDRIs, allowing you to stitch with the JPG files (which load quickly and, being tonemapped, show more dynamic range), and then swap the JPGs out with the EXR files at the end before your final export. If you are using PTGui, you can do this using the included `ptgui_jpg_to_hdr.py` file - just drag your `.pts` project file onto that script and it will replace the JPG paths with EXR ones.
-
-## Example Input Folder Structure
-
-The script will automatically read the metadata and determine which images should be grouped together and merged. The entire folder of images will be merged based on the pattern determined by the first set.
-
-The bracket matching works by checking the exposure metadata of the first image and searching for the next image with the same exposure:
-
-* C:/Foo/bar/
-    * `IMG001.tif` - 1/4000 F/8 ISO100
-    * `IMG002.tif` - 1/1000 F/8 ISO200
-    * `IMG003.tif` - 1/250 F/8 ISO400
-    * `IMG004.tif` - 1/4000 F/8 ISO100
-    * `IMG005.tif` - 1/1000 F/8 ISO200
-    * `IMG006.tif` - 1/250 F/8 ISO400
-
-The script will discover that images `IMG001.tif` and `IMG004.tif` have the same exposure settings, and thus the images will be grouped into threes:
-
-* Exposure set 1 (merged to `merged_000.exr`):
-    * `IMG001.tif`
-    * `IMG002.tif`
-    * `IMG003.tif`
-* Exposure set 2 (merged to `merged_001.exr`):
-    * `IMG004.tif`
-    * `IMG005.tif`
-    * `IMG006.tif`
-
-Exposures can be in any order (`0 + ++`, `0 - --`, `0 + -`, `- 0 +`, etc.).
-
 ## Bulding
 
 ### Manual offline builds
@@ -189,7 +180,7 @@ The distribution can be built using:
 
 `uv run python -m nuitka hdr_brackets.py `
 
-hdr_brackets.py has nuitka options preconfigured inside of it, so appropriate 
+hdr_brackets.py has nuitka options preconfigured inside of it, so appropriate
 The build will be located inside /build
 
 ### Github Actions Build
