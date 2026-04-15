@@ -170,95 +170,94 @@ class HDRProcessor:
                 "Folder %s: Bracket %d: Skipping, %s exists"
                 % (folder.name, i, exr_path.relative_to(folder))
             )
-            self.completed_sets_global += 1
-            self._update_progress()
-            return
+        else:
+            if do_align:
+                if VERBOSE:
+                    print(
+                        "Folder %s: Bracket %d: Aligning images %s"
+                        % (folder.name, i, [pathlib.Path(p.split("___")[0]).name for p in img_list])
+                    )
+                else:
+                    print("Folder %s: Bracket %d: Aligning images" % (folder.name, i))
 
-        if do_align:
+                align_folder.mkdir(parents=True, exist_ok=True)
+                actual_img_list = [i.split("___")[0] for i in img_list]
+                cmd = [
+                    align_image_stack_exe,
+                    "-v",
+                    "-i",
+                    "-l",
+                    "-a",
+                    (align_folder / "align_{}_".format(i)).as_posix(),
+                    "--gpu",
+                ]
+                cmd += actual_img_list
+                new_img_list = []
+                for j, img in enumerate(img_list):
+                    new_img_list.append(
+                        (
+                            align_folder
+                            / "align_{}_{}.tif___{}".format(
+                                i, str(j).zfill(4), img_list[j].split("___")[-1]
+                            )
+                        ).as_posix()
+                    )
+                run_subprocess_with_prefix(cmd, i, "align", out_folder)
+                img_list = new_img_list
+
             if VERBOSE:
                 print(
-                    "Folder %s: Bracket %d: Aligning images %s"
+                    "Folder %s: Bracket %d: Merging %s"
                     % (folder.name, i, [pathlib.Path(p.split("___")[0]).name for p in img_list])
                 )
             else:
-                print("Folder %s: Bracket %d: Aligning images" % (folder.name, i))
+                print("Folder %s: Bracket %d: Merging" % (folder.name, i))
 
-            align_folder.mkdir(parents=True, exist_ok=True)
-            actual_img_list = [i.split("___")[0] for i in img_list]
             cmd = [
-                align_image_stack_exe,
-                "-v",
-                "-i",
-                "-l",
-                "-a",
-                (align_folder / "align_{}_".format(i)).as_posix(),
-                "--gpu",
+                blender_exe,
+                "--background",
+                merge_blend.as_posix(),
+                "--factory-startup",
+                "--python",
+                merge_py.as_posix(),
+                "--",
+                exifs[0]["resolution"],
+                exr_path.as_posix(),
+                filter_used,
+                str(i),
             ]
-            cmd += actual_img_list
-            new_img_list = []
-            for j, img in enumerate(img_list):
-                new_img_list.append(
-                    (
-                        align_folder
-                        / "align_{}_{}.tif___{}".format(
-                            i, str(j).zfill(4), img_list[j].split("___")[-1]
-                        )
-                    ).as_posix()
+            cmd += img_list
+            run_subprocess_with_prefix(cmd, i, "blender", out_folder)
+
+            # Delete .blend1 backup file created by Blender
+            blend1_path = exr_path.with_name("bracket_%03d_sample.blend1" % i)
+            if blend1_path.exists():
+                blend1_path.unlink()
+
+        if not jpg_path.exists():
+            cmd = [
+                luminance_cli_exe,
+                "-l",
+                exr_path.as_posix(),
+                "--tmo",
+                "reinhard05",
+                "-g",
+                "2.2",
+                "-b",
+                "-q",
+                "98",
+                "-o",
+                jpg_path.as_posix(),
+            ]
+            run_subprocess_with_prefix(cmd, i, "luminance", out_folder)
+            if VERBOSE:
+                print(
+                    "Folder %s: Bracket %d: Complete %s"
+                    % (folder.name, i, [pathlib.Path(p.split("___")[0]).name for p in img_list])
                 )
-            run_subprocess_with_prefix(cmd, i, "align", out_folder)
-            img_list = new_img_list
+            else:
+                print("Folder %s: Bracket %d: Complete" % (folder.name, i))
 
-        if VERBOSE:
-            print(
-                "Folder %s: Bracket %d: Merging %s"
-                % (folder.name, i, [pathlib.Path(p.split("___")[0]).name for p in img_list])
-            )
-        else:
-            print("Folder %s: Bracket %d: Merging" % (folder.name, i))
-
-        cmd = [
-            blender_exe,
-            "--background",
-            merge_blend.as_posix(),
-            "--factory-startup",
-            "--python",
-            merge_py.as_posix(),
-            "--",
-            exifs[0]["resolution"],
-            exr_path.as_posix(),
-            filter_used,
-            str(i),
-        ]
-        cmd += img_list
-        run_subprocess_with_prefix(cmd, i, "blender", out_folder)
-
-        # Delete .blend1 backup file created by Blender
-        blend1_path = exr_path.with_name("bracket_%03d_sample.blend1" % i)
-        if blend1_path.exists():
-            blend1_path.unlink()
-
-        cmd = [
-            luminance_cli_exe,
-            "-l",
-            exr_path.as_posix(),
-            "--tmo",
-            "reinhard05",
-            "-g",
-            "2.2",
-            "-b",
-            "-q",
-            "98",
-            "-o",
-            jpg_path.as_posix(),
-        ]
-        run_subprocess_with_prefix(cmd, i, "luminance", out_folder)
-        if VERBOSE:
-            print(
-                "Folder %s: Bracket %d: Complete %s"
-                % (folder.name, i, [pathlib.Path(p.split("___")[0]).name for p in img_list])
-            )
-        else:
-            print("Folder %s: Bracket %d: Complete" % (folder.name, i))
         self.completed_sets_global += 1
         self._update_progress()
 
